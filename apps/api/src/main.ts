@@ -7,8 +7,13 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true }),
   );
+  const corsOrigins =
+    process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()).filter(Boolean) ?? [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+    ];
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') ?? 'http://localhost:3000',
+    origin: corsOrigins,
     credentials: true,
   });
   const port = process.env.PORT ?? 3001;

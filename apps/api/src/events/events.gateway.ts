@@ -6,9 +6,15 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 
+const wsCorsOrigins =
+  process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()).filter(Boolean) ?? [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+  ];
+
 @WebSocketGateway({
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(',') ?? 'http://localhost:3000',
+    origin: wsCorsOrigins,
     credentials: true,
   },
 })

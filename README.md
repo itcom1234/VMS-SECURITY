@@ -20,6 +20,8 @@ docker compose up --build
 
 **Seed logins** (dev only): `admin@vms.local` / `admin123` (Admin), `operator@vms.local` / `operator123` (Operator).
 
+**Troubleshooting:** Login or API errors in the browser? Use either `http://localhost:3000` or `http://127.0.0.1:3000` (both work); the UI calls `/api/*` on the same host. After changing `API_INTERNAL_URL` or `CORS_ORIGIN`, rebuild: `docker compose up --build web api`.
+
 ## Dev without Docker
 
 Prerequisites: Node 20+, PostgreSQL 16, Redis 7, [MediaMTX](https://github.com/bluenviron/mediamtx) binary.

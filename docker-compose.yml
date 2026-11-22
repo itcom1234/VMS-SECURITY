@@ -51,7 +51,7 @@ services:
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-me}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://127.0.0.1:3000}
       MTX_API_URL: http://mediamtx:9997
       MTX_HLS_PUBLIC_URL: ${NEXT_PUBLIC_MTX_HLS_URL:-http://localhost:8888}
       MTX_WEBRTC_PUBLIC_URL: ${NEXT_PUBLIC_MTX_WEBRTC_URL:-http://localhost:8889}
@@ -81,13 +81,13 @@ services:
       context: ./apps/web
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+        API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:3001}
         NEXT_PUBLIC_MTX_HLS_URL: ${NEXT_PUBLIC_MTX_HLS_URL:-http://localhost:8888}
         NEXT_PUBLIC_MTX_WEBRTC_URL: ${NEXT_PUBLIC_MTX_WEBRTC_URL:-http://localhost:8889}
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:3001}
       NEXT_PUBLIC_MTX_HLS_URL: ${NEXT_PUBLIC_MTX_HLS_URL:-http://localhost:8888}
       NEXT_PUBLIC_MTX_WEBRTC_URL: ${NEXT_PUBLIC_MTX_WEBRTC_URL:-http://localhost:8889}
     depends_on:
