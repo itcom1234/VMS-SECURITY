@@ -1,0 +1,16 @@
+node_modules/
+.next/
+dist/
+build/
+.env
+.env.local
+*.log
+.DS_Store
+coverage/
+.turbo/
+apps/api/prisma/*.db
+*.pyc
+__pycache__/
+.venv/
+venv/
+.python-version

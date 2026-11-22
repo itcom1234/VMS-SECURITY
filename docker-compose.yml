@@ -1,0 +1,109 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-vms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vms_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-vms}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vms}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mediamtx:
+    image: bluenviron/mediamtx:1.9.3
+    ports:
+      - "8554:8554"
+      - "8888:8888"
+      - "8889:8889"
+      - "9997:9997"
+    volumes:
+      - ./infra/mediamtx/mediamtx.yml:/mediamtx.yml:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:9997/v3/paths/list"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-vms}:${POSTGRES_PASSWORD:-vms_dev_password}@postgres:5432/${POSTGRES_DB:-vms}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-me}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      MTX_API_URL: http://mediamtx:9997
+      MTX_HLS_PUBLIC_URL: ${NEXT_PUBLIC_MTX_HLS_URL:-http://localhost:8888}
+      MTX_WEBRTC_PUBLIC_URL: ${NEXT_PUBLIC_MTX_WEBRTC_URL:-http://localhost:8889}
+      WORKER_API_KEY: ${WORKER_API_KEY:-dev-worker-key-change-me}
+      PORT: 3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mediamtx:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+        NEXT_PUBLIC_MTX_HLS_URL: ${NEXT_PUBLIC_MTX_HLS_URL:-http://localhost:8888}
+        NEXT_PUBLIC_MTX_WEBRTC_URL: ${NEXT_PUBLIC_MTX_WEBRTC_URL:-http://localhost:8889}
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      NEXT_PUBLIC_MTX_HLS_URL: ${NEXT_PUBLIC_MTX_HLS_URL:-http://localhost:8888}
+      NEXT_PUBLIC_MTX_WEBRTC_URL: ${NEXT_PUBLIC_MTX_WEBRTC_URL:-http://localhost:8889}
+    depends_on:
+      api:
+        condition: service_healthy
+
+  ai-worker:
+    build:
+      context: ./services/ai-worker
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_URL: redis://redis:6379
+      API_INTERNAL_URL: http://api:3001
+      WORKER_API_KEY: ${WORKER_API_KEY:-dev-worker-key-change-me}
+      SAMPLE_INTERVAL_SEC: "15"
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
