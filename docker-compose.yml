@@ -1,5 +1,6 @@
 services:
   postgres:
+    restart: unless-stopped
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-vms}
@@ -16,6 +17,7 @@ services:
       retries: 5
 
   redis:
+    restart: unless-stopped
     image: redis:7-alpine
     ports:
       - "6379:6379"
@@ -26,6 +28,7 @@ services:
       retries: 5
 
   mediamtx:
+    restart: unless-stopped
     image: bluenviron/mediamtx:1.9.3
     ports:
       - "8554:8554"
@@ -41,6 +44,7 @@ services:
       retries: 3
 
   api:
+    restart: unless-stopped
     build:
       context: ./apps/api
       dockerfile: Dockerfile
@@ -77,6 +81,7 @@ services:
       retries: 5
 
   web:
+    restart: unless-stopped
     build:
       context: ./apps/web
       dockerfile: Dockerfile
@@ -95,6 +100,7 @@ services:
         condition: service_healthy
 
   ai-worker:
+    restart: unless-stopped
     build:
       context: ./services/ai-worker
       dockerfile: Dockerfile
