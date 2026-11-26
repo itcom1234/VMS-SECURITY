@@ -1,0 +1,18 @@
+# Base MediaMTX config — camera paths are added dynamically via API (:9997)
+logLevel: info
+api: yes
+apiAddress: :9997
+
+webrtc: yes
+webrtcAddress: :8889
+
+hls: yes
+hlsAddress: :8888
+hlsAlwaysRemux: yes
+
+rtsp: yes
+rtspAddress: :8554
+
+paths:
+  # Placeholder; dynamic paths use prefix cam-
+  all_others:

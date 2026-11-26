@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+}
+
+enum CameraStatus {
+  OFFLINE
+  STREAMING
+  ERROR
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(OPERATOR)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Camera {
+  id             String       @id @default(uuid())
+  name           String
+  rtspUrl        String
+  username       String?
+  passwordEnc    String?
+  aiEnabled      Boolean      @default(true)
+  scoreThreshold Float        @default(0.65)
+  site           String?
+  tags           String?
+  mtxPath        String       @unique
+  status         CameraStatus @default(OFFLINE)
+  lastScore      Float?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  alerts         Alert[]
+}
+
+model Alert {
+  id           String   @id @default(uuid())
+  cameraId     String
+  camera       Camera   @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+  score        Float
+  labels       String[]
+  snapshotRef  String?
+  message      String?
+  acknowledged Boolean  @default(false)
+  falsePositive Boolean @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([cameraId])
+  @@index([createdAt])
+}
