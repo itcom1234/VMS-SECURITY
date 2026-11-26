@@ -88,6 +88,29 @@ export const authApi = {
   me: () => api<User>('/auth/me'),
 };
 
+export type OnvifDeviceInfo = {
+  manufacturer?: string;
+  model?: string;
+  firmwareVersion?: string;
+  serialNumber?: string;
+  hardwareId?: string;
+};
+
+export type OnvifProfile = {
+  token: string;
+  name: string;
+  rtspUrl: string | null;
+  videoWidth?: number;
+  fixed?: boolean;
+};
+
+export type OnvifDiscoverResult = {
+  device: OnvifDeviceInfo;
+  profiles: OnvifProfile[];
+  suggestedProfileToken?: string;
+  suggestedRtspUrl?: string;
+};
+
 export const camerasApi = {
   list: () => api<Camera[]>('/cameras'),
   get: (id: string) => api<Camera>(`/cameras/${id}`),
@@ -100,6 +123,23 @@ export const camerasApi = {
     }),
   remove: (id: string) =>
     api<{ deleted: boolean }>(`/cameras/${id}`, { method: 'DELETE' }),
+  onvifDiscover: (body: {
+    host: string;
+    port?: number;
+    username: string;
+    password: string;
+    useSecure?: boolean;
+    path?: string;
+  }) =>
+    api<OnvifDiscoverResult>('/cameras/onvif/discover', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  onvifAdd: (body: Record<string, unknown>) =>
+    api<Camera>('/cameras/onvif/add', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };
 
 export const alertsApi = {

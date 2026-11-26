@@ -6,6 +6,8 @@ import { MediaMtxService } from '../mediamtx/mediamtx.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCameraDto } from './dto/create-camera.dto';
 import { UpdateCameraDto } from './dto/update-camera.dto';
+import { OnvifAddCameraDto } from './dto/onvif-add.dto';
+import { OnvifDiscoveryService } from './onvif-discovery.service';
 
 function toPublicCamera(
   camera: Prisma.CameraGetPayload<object>,
@@ -36,6 +38,7 @@ export class CamerasService {
   constructor(
     private prisma: PrismaService,
     private mtx: MediaMtxService,
+    private onvif: OnvifDiscoveryService,
   ) {}
 
   async findAll() {
@@ -49,6 +52,38 @@ export class CamerasService {
     const camera = await this.prisma.camera.findUnique({ where: { id } });
     if (!camera) throw new NotFoundException('Camera not found');
     return toPublicCamera(camera, this.mtx);
+  }
+
+  async createFromOnvif(dto: OnvifAddCameraDto) {
+    const discovered = await this.onvif.discover(dto);
+    const token =
+      dto.profileToken ??
+      discovered.suggestedProfileToken ??
+      discovered.profiles[0]?.token;
+    if (!token) {
+      throw new NotFoundException('No ONVIF media profile available');
+    }
+    let rtspUrl =
+      discovered.profiles.find((p) => p.token === token)?.rtspUrl ?? null;
+    if (!rtspUrl) {
+      rtspUrl = await this.onvif.rtspUrlForProfile(dto, token);
+    }
+    const defaultName =
+      dto.name ||
+      [discovered.device.manufacturer, discovered.device.model]
+        .filter(Boolean)
+        .join(' ') ||
+      `Camera ${dto.host}`;
+    return this.create({
+      name: defaultName,
+      rtspUrl,
+      username: dto.username,
+      password: dto.password,
+      aiEnabled: dto.aiEnabled,
+      scoreThreshold: dto.scoreThreshold,
+      site: dto.site ?? dto.host,
+      tags: dto.tags,
+    });
   }
 
   async create(dto: CreateCameraDto) {

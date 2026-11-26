@@ -46,9 +46,40 @@ Web: http://localhost:3000 · API: http://localhost:3001
 
 ## Adding a camera
 
-1. Sign in as Admin → **Cameras** → **Add camera**.
-2. Set **RTSP URL** (and credentials in the form — never commit real secrets).
-3. API provisions MediaMTX path `cam-<id>` and returns HLS/WebRTC URLs.
+### Via ONVIF (recommended on LAN)
+
+1. Sign in as Admin → **Cameras** → **Add camera** → **Add via ONVIF**.
+2. Enter camera **IP**, **ONVIF port** (default `80`), **username**, **password** → **Discover**.
+3. Pick a media profile (main stream is pre-selected when possible) → name → **Save**.
+4. API stores the resolved **RTSP URL**, encrypts credentials, and provisions MediaMTX path `cam-<id>`.
+
+**API (same as UI):**
+
+```bash
+TOKEN=$(curl -sS -X POST http://localhost:3001/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@vms.local","password":"admin123"}' | jq -r .accessToken)
+
+curl -sS -X POST http://localhost:3001/cameras/onvif/discover \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"host":"192.168.1.50","port":80,"username":"admin","password":"your-pass"}' | jq
+
+curl -sS -X POST http://localhost:3001/cameras/onvif/add \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"host":"192.168.1.50","username":"admin","password":"your-pass","name":"Front door"}' | jq
+```
+
+**Testing without hardware:** [ONVIF Device Manager](https://sourceforge.net/projects/onvifdm/) or a camera simulator that exposes `http://<ip>/onvif/device_service` with media profiles. Ensure the API container/host can reach the camera IP (same VLAN or port-forward). Wrong credentials return **401** with a clear message.
+
+**Unit test (profile picker / error mapping):** `cd apps/api && npm run test:onvif-util`
+
+### Manual RTSP
+
+1. **Cameras** → **Add camera** → **Manual RTSP**.
+2. Paste **RTSP URL** and optional stream credentials.
+3. Save — MediaMTX path is provisioned as above.
 
 **Demo RTSP (no secrets):**  
 `rtsp://wowzaec2demo.streamlock.net/vlc/mp4:BigBuckBunny_115k.mp4`
@@ -67,6 +98,7 @@ See [`.env.example`](.env.example). Important:
 | `ENCRYPTION_KEY` | 32-char key for RTSP password encryption at rest |
 | `WORKER_API_KEY` | Shared secret for AI worker → API |
 | `NEXT_PUBLIC_*` | Browser API + MediaMTX public URLs |
+| `ONVIF_TIMEOUT_MS` | Optional ONVIF SOAP timeout in ms (default `15000`) |
 
 ## Repo layout
 
@@ -88,7 +120,7 @@ docs/             AI worker contract
 | Live grid (HLS via hls.js) | ✅ |
 | AI alerts + WebSocket push | ✅ |
 | AI inference (ONNX/YOLO) | 🔶 Stub random scores |
-| ONVIF discovery | 🔶 Phase 1 |
+| ONVIF discovery (IP + credentials) | ✅ |
 | Recording / playback | 🔶 Phase 1 |
 | User management UI | 🔶 Settings stub |
 

@@ -15,15 +15,35 @@ import { RolesGuard } from '../auth/roles.guard';
 import { CamerasService } from './cameras.service';
 import { CreateCameraDto } from './dto/create-camera.dto';
 import { UpdateCameraDto } from './dto/update-camera.dto';
+import { OnvifDiscoverDto } from './dto/onvif-discover.dto';
+import { OnvifAddCameraDto } from './dto/onvif-add.dto';
+import { OnvifDiscoveryService } from './onvif-discovery.service';
 
 @Controller('cameras')
 @UseGuards(JwtAuthGuard)
 export class CamerasController {
-  constructor(private cameras: CamerasService) {}
+  constructor(
+    private cameras: CamerasService,
+    private onvif: OnvifDiscoveryService,
+  ) {}
 
   @Get()
   list() {
     return this.cameras.findAll();
+  }
+
+  @Post('onvif/discover')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  discoverOnvif(@Body() dto: OnvifDiscoverDto) {
+    return this.onvif.discover(dto);
+  }
+
+  @Post('onvif/add')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  addViaOnvif(@Body() dto: OnvifAddCameraDto) {
+    return this.cameras.createFromOnvif(dto);
   }
 
   @Get(':id')
